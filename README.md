@@ -181,7 +181,9 @@ The `Watch.MicroSleep` implementation uses an adaptive approach:
 
 ## Requirements
 - .NET 8.0 or later
-
+This is due to the use of primary constructors, if you need it on earlier version
+i made adjustments for the `Thread _Lock` to allow the use of the old `Object _Lock`.
+The interfaces used for arithmetic / bitwise operations require NET 7.0 as well.
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
