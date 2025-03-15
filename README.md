@@ -13,7 +13,7 @@ A lightweight, high-performance C# library providing atomic operations and micro
 - Compare-and-exchange functionality for lock-free algorithms
 
 ### High-Precision Thread Delay
-- Microsecond-level precision timing (up to 1408× more precise than `Thread.Sleep`)
+- Microsecond-level precision timing (up to 1673x more precise than `Thread.Sleep`)
 - Adaptive implementation balancing CPU usage and timing accuracy
 - Extremely low jitter (0.49%-2.37%) even at high frequencies
 - Support for nanosecond, microsecond, millisecond, and second-level delays
