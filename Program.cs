@@ -530,7 +530,6 @@ namespace ConsoleApp1
         {
             Console.WriteLine( "\nTesting CPU usage patterns during high precision delays..." );
 
-            int iterations = 1000;
             TimeSpan testDuration = TimeSpan.FromSeconds( 2 );
 
             // Measure operations per second for different delay types

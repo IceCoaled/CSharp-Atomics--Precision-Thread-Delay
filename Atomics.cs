@@ -20,7 +20,12 @@ namespace SCB.Atomics
         private AtomicStorageEx* storageEx;
         private AtomicStorage* storage;
         protected Type TypeInfo { get; init; } = typeof( T );
+
+#if NET9_0_OR_GREATER
         private System.Threading.Lock HighContentionSyncLock { get; init; }
+#else
+        private object HighContentionSyncLock { get; init; }
+#endif
 
         protected uint RefCount = 1;
         protected uint ContentionThreshold { get; init; }
@@ -103,7 +108,7 @@ namespace SCB.Atomics
             // Initialize the contention threshold, and the lock
             IsExtended = false;
             ContentionThreshold = uint.MaxValue;
-            HighContentionSyncLock = new System.Threading.Lock();
+            HighContentionSyncLock = new();
 
             AllocAlignedMemory();
 
@@ -158,7 +163,7 @@ namespace SCB.Atomics
             Marshal.StructureToPtr( tempStorage, ( ( nint ) AllocHeader ), false );
         }
 
-
+#if NET9_0_OR_GREATER
         /// <summary>
         /// Lock the atomic operations.
         /// If you Achive the lock, you must release it,
@@ -193,7 +198,45 @@ namespace SCB.Atomics
         {
             return HighContentionSyncLock.EnterScope();
         }
+#else
 
+        /// <summary>
+        /// Lock the atomic operations.
+        /// If you Achive the lock, you must release it,
+        /// by calling the <see cref="Unlock"/>.
+        /// If you want a timeout, you can specify it in milliseconds.
+        /// </summary>
+        /// <param name="timeoutMs"></param>
+        /// <returns>Returns true if lock achieved, else false</returns>
+        [MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public bool TryLock( int timeoutMs = 0 )
+        {
+            return ( timeoutMs == 0 ) ? Monitor.TryEnter( HighContentionSyncLock ) : Monitor.TryEnter( HighContentionSyncLock, timeoutMs );
+        }
+
+
+        /// <summary>
+        /// Exits the lock previously acquired by <see cref="TryLock"/>
+        /// </summary>
+        [MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public void Unlock()
+        {
+            Monitor.Exit( HighContentionSyncLock );
+        }
+
+        /// <summary>
+        /// Enter a scope lock for the atomic operations.
+        /// This will wait until the lock is available.
+        /// Dispose the scope lock to release the lock.
+        /// </summary>
+        /// <returns><see cref="System.Threading.Lock.Scope"/></returns>
+        [MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public AtomicScopeLock ScopeLock()
+        {
+            return new AtomicScopeLock( HighContentionSyncLock );
+        }
+
+#endif
 
         /// <summary>
         /// Increment the reference count.
@@ -417,6 +460,39 @@ namespace SCB.Atomics
         [FieldOffset( 48 )] private readonly ulong padding5 = 0x0000000000000000;
         [FieldOffset( 56 )] private readonly ulong padding6 = 0x0000000000000000;
     }
+
+
+#if !NET_9_0_OR_GREATER
+    public class AtomicScopeLock : IDisposable
+    {
+        private bool Disposed { get; set; } = false;
+        private object Lock { get; init; }
+        public AtomicScopeLock( object lockObject )
+        {
+            Lock = lockObject;
+            Monitor.Enter( Lock );
+        }
+        ~AtomicScopeLock()
+        {
+            Dispose( false );
+        }
+        public void Dispose()
+        {
+            Dispose( true );
+            GC.SuppressFinalize( this );
+        }
+        protected virtual void Dispose( bool disposing )
+        {
+            if ( !Disposed &&
+                disposing )
+            {
+                Monitor.Exit( Lock );
+            }
+            Disposed = true;
+        }
+    }
+#endif
+
 
 
 

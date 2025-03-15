@@ -1,4 +1,4 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 
 namespace SCB.Atomics
 {
@@ -21,7 +21,11 @@ namespace SCB.Atomics
     public partial class NonNullableAtomicThreadSignal<T>( T inputValue ) : IDisposable
     {
         private bool disposed = false;
+#if NET9_0_OR_GREATER
         private readonly Lock internalLock = new();
+#else
+        private readonly object internalLock = new();
+#endif
         private T value = inputValue;
         private readonly ManualResetEventSlim threadSignal = new();
 
@@ -134,11 +138,9 @@ namespace SCB.Atomics
         public T SetValue( T newValue )
         {
             T oldValue;
-            using ( internalLock.EnterScope() )
-            {
-                oldValue = value;
-                value = newValue;
-            }
+            using var sL = this.ScopeLock();
+            oldValue = value;
+            value = newValue;
             return oldValue;
         }
 
@@ -151,12 +153,38 @@ namespace SCB.Atomics
         public T GetValue()
         {
             T oldValue;
-            using ( internalLock.EnterScope() )
-            {
-                oldValue = value;
-            }
+            using var sL = this.ScopeLock();
+            oldValue = value;
             return oldValue;
         }
+
+#if NET9_0_OR_GREATER
+        /// <summary>
+        /// Enter a scope lock for the atomic operations.
+        /// This will wait until the lock is available.
+        /// Dispose the scope lock to release the lock.
+        /// </summary>
+        /// <returns><see cref="System.Threading.Lock.Scope"/></returns>
+        [MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public System.Threading.Lock.Scope ScopeLock()
+        {
+            return internalLock.EnterScope();
+        }
+#else
+
+        /// <summary>
+        /// Enter a scope lock for the atomic operations.
+        /// This will wait until the lock is available.
+        /// Dispose the scope lock to release the lock.
+        /// </summary>
+        /// <returns><see cref="System.Threading.Lock.Scope"/></returns>
+        [MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public AtomicScopeLock ScopeLock()
+        {
+            return new AtomicScopeLock( internalLock );
+        }
+
+#endif
 
         public void Dispose()
         {
@@ -189,7 +217,11 @@ namespace SCB.Atomics
     public partial class NullableAtomicThreadSignal<T>( T? inputValue ) : IDisposable
     {
         private bool disposed = false;
+#if NET9_0_OR_GREATER
         private readonly Lock internalLock = new();
+#else
+        private readonly object internalLock = new();
+#endif
         private T? value = inputValue;
         private readonly ManualResetEventSlim threadSignal = new();
 
@@ -307,11 +339,10 @@ namespace SCB.Atomics
         [MethodImpl( MethodImplOptions.AggressiveInlining )]
         public void SetValue( T newValue )
         {
-            using ( internalLock.EnterScope() )
-            {
-                DisposeInternalStorage();
-                value = newValue;
-            }
+            using var sL = this.ScopeLock();
+            DisposeInternalStorage();
+            value = newValue;
+
         }
 
 
@@ -323,12 +354,40 @@ namespace SCB.Atomics
         public T? GetValue()
         {
             T? oldValue;
-            using ( internalLock.EnterScope() )
-            {
-                oldValue = value;
-            }
+            using var sL = this.ScopeLock();
+            oldValue = value;
             return oldValue;
         }
+
+
+
+#if NET9_0_OR_GREATER
+        /// <summary>
+        /// Enter a scope lock for the atomic operations.
+        /// This will wait until the lock is available.
+        /// Dispose the scope lock to release the lock.
+        /// </summary>
+        /// <returns><see cref="System.Threading.Lock.Scope"/></returns>
+        [MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public System.Threading.Lock.Scope ScopeLock()
+        {
+            return internalLock.EnterScope();
+        }
+#else
+
+        /// <summary>
+        /// Enter a scope lock for the atomic operations.
+        /// This will wait until the lock is available.
+        /// Dispose the scope lock to release the lock.
+        /// </summary>
+        /// <returns><see cref="System.Threading.Lock.Scope"/></returns>
+        [MethodImpl( MethodImplOptions.AggressiveInlining )]
+        public AtomicScopeLock ScopeLock()
+        {
+            return new AtomicScopeLock( internalLock );
+        }
+
+#endif
 
         public void Dispose()
         {
