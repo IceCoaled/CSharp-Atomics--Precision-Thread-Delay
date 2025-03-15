@@ -180,17 +180,13 @@ The `Watch.MicroSleep` implementation uses an adaptive approach:
 - **Parallel Computing**: Lock-free algorithms, concurrent data structures
 
 ## Requirements
-
-- .NET 6.0+ or .NET Framework 4.7.2+
-- Works with both 32-bit and 64-bit processes
+- .NET 8.0 or later
 
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
 ## Acknowledgments
-
-- Inspired by Java's atomic classes and high-resolution timing mechanisms
 - Special thanks to the .NET runtime team for the Interlocked API
 
 ## Contributing
