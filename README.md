@@ -83,8 +83,6 @@ while (running)
 Starting test with 16 threads, 10000 operations each
 Atomic counter: 160000, Expected: 160000
 Atomic counter: 160000, Expected: 160000
-Atomic counter: 160000, Expected: 160000
-Atomic counter: 160000, Expected: 160000
 Control counter: 160000, Expected: 160000
 Test result: PASSED
 
@@ -93,14 +91,32 @@ Test result: PASSED
 =======================================
 High contention test: 64 threads all updating the same variable
 Final value: 6400000, Expected: 6400000
-Time taken: 1707ms
+Time taken: 1258ms
 Test result: PASSED
 
 =======================================
 2.B Compare-And-Exchange Test
 =======================================
-CAS Operations - Successful: 6386, Failed: 1614
-Final value: 28640
+CAS Operations - Successful: 5537, Failed: 2463
+Final value: 24897
+
+=======================================
+2.C Complex Operations Test
+=======================================
+After complex operations, final value: 1810522506872750077
+
+=======================================
+3.A Delay Injection Test
+=======================================
+Running with 32 threads, 1000 operations each
+Starting threads...
+Atomic result: 32000, Expected: 32000
+Non-atomic result: 973, Expected: 32000
+Atomic Test Result: PASSED
+Non-atomic Test Result: FAILED
+Race condition statistics:
+- Lost operations: 31,015
+- Percentage lost: 96.92%
 
 =======================================
 3.B CPU Bound Test
@@ -112,8 +128,8 @@ Test result: PASSED
 5. Stress Test (10 seconds)
 =======================================
 Starting stress test for 10 seconds
-Stress test complete: 393822441 operations in 11162ms
-Final value: -3150607813, Expected sum of operations: -3150607813
+Stress test complete: 387215854 operations in 10890ms
+Final value: -3098135902, Expected sum of operations: -3098135902
 Result: PASSED
 ```
 
@@ -127,37 +143,67 @@ Testing MicroSleep accuracy at various durations...
 
 Target (µs)     Avg Actual (µs) Error (%)       Consistency (%)
 ------------------------------------------------------------
-1.00            43.14           4214.00         143.14
-10.00           10.08           0.80            0.74
-50.00           62.74           25.48           0.24
-100.00          110.98          10.98           3.74
-500.00          510.66          2.13            0.53
-1000.00         1008.30         0.83            0.73
-5000.00         5000.22         0.00            0.00
-10000.00        10000.40        0.00            0.00
+1.00            35.20           3420.00         143.22
+10.00           10.10           1.00            1.08
+50.00           54.78           9.56            1.79
+100.00          100.18          0.18            0.07
+500.00          507.64          1.53            0.51
+1000.00         1006.34         0.63            0.18
+5000.00         5000.28         0.01            0.00
+10000.00        10000.26        0.00            0.00
+
+Testing CPU usage patterns during high precision delays...
+
+Measuring operations per second with different delay types:
+Delay Type      Ops per Second
+------------------------------
+No delay        38,650,366
+Thread.Sleep(0) 2,570,410
+Thread.Sleep(1) 97
+MicroSleep(1)   971,219
+MicroSleep(50)  19,134
+MicroSleep(1000) 994
 
 Comparing precision between different sleep methods...
 
 Average error from target of 1ms over 100 trials:
-Thread.Sleep         14.080000      ms
-Watch.MilliSleep     1.011201       ms
-Watch.MicroSleep     0.009994       ms
+Thread.Sleep         9.020000       ms
+Watch.MilliSleep     1.007837       ms
+Watch.MicroSleep     0.005390       ms
 
 Relative precision improvements:
-MilliSleep is 13.92x more precise than Thread.Sleep
-MicroSleep is 1408.85x more precise than Thread.Sleep
+MilliSleep is 8.95x more precise than Thread.Sleep
+MicroSleep is 1673.47x more precise than Thread.Sleep
+
+Testing different sleep variant methods...
+
+Target (ms)     NanoSleep       MicroSleep      MilliSleep      SecondsSleep
+---------------------------------------------------------------------------
+1.00            1.05            1.00            1.00            1.03
+10.00           10.00           10.00           10.00           10.00
+100.00          100.00          100.00          100.00          100.00
 
 Testing high-frequency timing capability...
 
 Testing frequency: 1000Hz (period: 1000.00 µs)
-Average interval: 1005.25 µs (target: 1000.00 µs)
-Standard deviation: 4.96 µs (jitter: 0.49%)
-Min/Max: 1000.20/1020.10 µs, Range: 19.90 µs
+Average interval: 1006.64 µs (target: 1000.00 µs)
+Standard deviation: 4.99 µs (jitter: 0.50%)
+Min/Max: 1000.00/1028.70 µs, Range: 28.70 µs
+
+Testing frequency: 2000Hz (period: 500.00 µs)
+Average interval: 506.36 µs (target: 500.00 µs)
+Standard deviation: 2.07 µs (jitter: 0.41%)
+Min/Max: 500.20/513.70 µs, Range: 13.50 µs
+
+Testing frequency: 5000Hz (period: 200.00 µs)
+Average interval: 201.55 µs (target: 200.00 µs)
+Standard deviation: 1.69 µs (jitter: 0.84%)
+Min/Max: 200.10/211.60 µs, Range: 11.50 µs
 
 Testing frequency: 10000Hz (period: 100.00 µs)
-Average interval: 103.52 µs (target: 100.00 µs)
-Standard deviation: 2.45 µs (jitter: 2.37%)
-Min/Max: 100.00/115.70 µs, Range: 15.70 µs
+Average interval: 105.73 µs (target: 100.00 µs)
+Standard deviation: 2.38 µs (jitter: 2.25%)
+Min/Max: 100.00/110.60 µs, Range: 10.60 µs
 ```
 
 ## Implementation Details
