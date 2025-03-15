@@ -18,15 +18,6 @@ A lightweight, high-performance C# library providing atomic operations and micro
 - Extremely low jitter (0.49%-2.37%) even at high frequencies
 - Support for nanosecond, microsecond, millisecond, and second-level delays
 
-## Installation
-
-```bash
-# Via NuGet (if published)
-dotnet add package HighPerformanceAtomics
-
-# Or clone the repository
-git clone https://github.com/yourusername/high-performance-atomics.git
-```
 
 ## Usage
 
