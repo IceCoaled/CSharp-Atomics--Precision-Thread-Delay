@@ -8,7 +8,7 @@ A lightweight, high-performance C# library providing atomic operations and micro
 
 ### Atomic Operations
 - Thread-safe primitive operations without locks
-- Support for multiple types: `AtomicInt32`, `AtomicInt64`, `AtomicDouble`, `AtomicFloat`
+- Support for multiple types: `AtomicInt32`, `AtomicInt64`, `AtomicDouble`, `AtomicFloat`, `AtomicThreadSignal`
 - High-performance implementation passing extensive concurrency tests
 - Compare-and-exchange functionality for lock-free algorithms
 
