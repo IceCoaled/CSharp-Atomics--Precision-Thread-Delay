@@ -233,70 +233,108 @@ namespace ConsoleApp1
         // 3.A Delay Injection Test
         public static void DelayInjectionTest()
         {
-            AtomicInt64 atomic = new AtomicInt64( 0L );
-            long nonAtomic = 0;
+            Console.WriteLine( "\n=======================================" );
+            Console.WriteLine( "3.A Delay Injection Test" );
+            Console.WriteLine( "=======================================" );
 
-            int threadCount = 2;
+            AtomicInt64 atomic = new AtomicInt64( 0L );
+
+            // Use volatile to prevent some compiler optimizations
+            // but this won't make it thread-safe
+            long volatileNonAtomic = 0;
+
+            // More threads = more contention
+            int threadCount = Environment.ProcessorCount * 2; // Use multiple threads based on CPU count
+            int operationsPerThread = 1000; // More operations
+            int expectedTotal = threadCount * operationsPerThread;
+
+            Console.WriteLine( $"Running with {threadCount} threads, {operationsPerThread} operations each" );
+
+            // Create a barrier to ensure all threads start at roughly the same time
+            // This increases the chance of race conditions
+            using var startBarrier = new CountdownEvent( threadCount * 2 );
+
             var threads = new Thread[ threadCount ];
             var nonAtomicThreads = new Thread[ threadCount ];
 
-            // Test with artificial delays to force race conditions
+            // Test with artificial delays and busy work to force race conditions
             for ( int i = 0; i < threadCount; i++ )
             {
                 threads[ i ] = new Thread( () =>
                 {
-                    for ( int j = 0; j < 100; j++ )
+                    // Signal ready and wait for all threads
+                    startBarrier.Signal();
+                    startBarrier.Wait();
+
+                    for ( int j = 0; j < operationsPerThread; j++ )
                     {
-                        // For atomic operations - get current value
-                        long current = atomic.Read();
 
-                        // Artificial delay to force race condition
-                        Thread.Sleep( 1 );
+                        // Do some busy work to increase chance of contention
+                        if ( j % 10 == 0 )
+                        {
+                            // Sporadic delays of varying lengths to increase race condition chances
+                            Thread.Yield();
+                            if ( j % 50 == 0 )
+                                Thread.Sleep( 1 );
+                        }
 
-                        // Set new value - this should be atomic
-                        atomic.Write( current + 1L );
+                        // This should be atomic and safe
+                        atomic.Increment( 1L );
                     }
                 } );
 
                 nonAtomicThreads[ i ] = new Thread( () =>
                 {
-                    for ( int j = 0; j < 100; j++ )
+                    // Signal ready and wait for all threads
+                    startBarrier.Signal();
+                    startBarrier.Wait();
+
+                    for ( int j = 0; j < operationsPerThread; j++ )
                     {
-                        // For non-atomic - get current value
-                        long current = nonAtomic;
+                        // Read-modify-write pattern with non-atomic operation
+                        long current = volatileNonAtomic;
 
-                        // Artificial delay to force race condition
-                        Thread.Sleep( 1 );
+                        // Do some busy work to increase chance of contention
+                        if ( j % 10 == 0 )
+                        {
+                            // Sporadic delays of varying lengths to increase race condition chances
+                            Thread.Yield();
+                            if ( j % 50 == 0 )
+                                Thread.Sleep( 1 );
+                        }
 
-                        // Set new value - this WILL have race conditions
-                        nonAtomic = current + 1;
+                        // This will have race conditions
+                        volatileNonAtomic = current + 1L;
                     }
                 } );
             }
 
+            Console.WriteLine( "Starting threads..." );
+
+            // Start all threads
             foreach ( var t in threads )
                 t.Start();
             foreach ( var t in nonAtomicThreads )
                 t.Start();
 
+            // Wait for all threads to complete
             foreach ( var t in threads )
                 t.Join();
             foreach ( var t in nonAtomicThreads )
                 t.Join();
 
-            long expected = threadCount / 2 * 100;
+            // Check results
             long atomicResult = atomic.Read();
-            bool expectedPass = nonAtomic == expected;
-            bool atomicPass = atomicResult == expected;
-            Console.WriteLine( $"Atomic result: {atomicResult}, Expected: {expected}" );
-            Console.WriteLine( $"Non-atomic result: {nonAtomic}, Expected: {expected}" );
+            long nonAtomicResult = Volatile.Read( ref volatileNonAtomic );
+
+            Console.WriteLine( $"Atomic result: {atomicResult}, Expected: {expectedTotal}" );
+            Console.WriteLine( $"Non-atomic result: {nonAtomicResult}, Expected: {expectedTotal}" );
+
+            bool atomicPass = atomicResult == expectedTotal;
+            bool nonAtomicPass = nonAtomicResult == expectedTotal;
+
             Console.WriteLine( $"Atomic Test Result: {( atomicPass ? "PASSED" : "FAILED" )}" );
-            Console.WriteLine( $"Non-atomic Test Result: {( expectedPass ? "PASSED (Unexpected)" : "FAILED (Expected)" )}" );
-
-            if ( !atomicPass && !expectedPass && ( atomicResult >= ( nonAtomic - 2L ) || atomicResult <= ( nonAtomic + 2L ) ) )
-                Console.WriteLine( "Technical Pass: Atomic and Non-Atomic results are the same" );
-
-
+            Console.WriteLine( $"Non-atomic Test Result: {( nonAtomicPass ? "PASSED" : "FAILED" )}" );
 
             atomic.Dispose();
         }
